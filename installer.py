@@ -38,7 +38,7 @@ drive = os.environ['SYSTEMDRIVE']
 
 
 # Download NodeJS app with config
-appUrl = input("Url to the zip archive of NodeJS app:")
+appUrl = input("Url to the zip archive of NodeJS app: ")
 
 print("Download NodeJS app.")
 install(appUrl, f"{drive}/Windows/Temp/clonedApp")
@@ -46,6 +46,8 @@ print("Successfully downloaded the NodeJS app.")
 
 
 # Load config
+print()
+
 folderName = os.listdir(f"{drive}/Windows/Temp/clonedApp")[0]
 configFileDefault = f"{drive}/Windows/Temp/clonedApp/{folderName}/package.json"
 configFile = configFileDefault
@@ -53,20 +55,27 @@ configFile = configFileDefault
 if input("Use custom config? [y/n]: (n) ") == "y":
     configFile = input("Path of the config file: ").replace("\\", "/")
 
+print("Loading config ...")
 nodeConfig = json.load( open( configFile, "r" ))
+print("Successfully loaded the config.")
 
+useDefaultConfig = False
 if not "nodeWinInstaller" in nodeConfig:
-    print("No config for 'nodeWinInstaller was found. Continuing with default config ...")
-    
-    nodeConfig["nodeWinInstaller"] = json.loads( urllib.request.urlopen("https://github.com/lnoppinger/nodeWinInstaller/default_config.json").read() )
+    useDefaultConfig = True
+    print("No config for 'nodeWinInstaller' was found. Continuing with default config ...")
+
+    url = "https://raw.githubusercontent.com/lnoppinger/nodeWinInstaller/main/default_config.json"
+    nodeConfig["nodeWinInstaller"] = json.loads( urllib.request.urlopen( url ).read() )
     print("Successfully downloaded default config.")
 
 config = nodeConfig["nodeWinInstaller"]
 
 
 # Creating the installation directory
+print()
+
 defaultDir = f"{drive}/Program Files/{nodeConfig['name'].lower()}"
-dir = input(f"Path of the installation directory: ({defaultDir})) ").replace("\\", "/") or defaultDir
+dir = input(f"Path of the installation directory: ({defaultDir}) ").replace("\\", "/") or defaultDir
 
 if not os.path.exists(dir):
     os.mkdir(dir)
@@ -81,9 +90,11 @@ else:
 
 
 # Move temp cloned App to its location
+print()
+
 os.rename(f"{drive}/Windows/Temp/clonedApp/{folderName}", f"{dir}/app")
-if configFile == configFileDefault:
-    configFile = f"{dir}/app/package.json"
+shutil.rmtree(f"{drive}/Windows/Temp/clonedApp")
+
 print(f"Successfully saved NodeJS app to '{dir}/app'")
 
 
@@ -129,13 +140,38 @@ if config["db"] :
         print("PostgreSQL 14 is already installed.")
 
 
+# Save current config in file
+print()
+print("Save essential infos to config file ...")
+
+f = open(f"{dir}/config.json", "w")
+configEssential = json.loads('{"name": null, "main": null, "nodeWinInstaller": null}')
+configEssential["name"] = nodeConfig["name"]
+configEssential["main"] = nodeConfig["main"]
+configEssential["nodeWinInstaller"] = config
+f.close()
+
+print("Successfully saved config.")
 
 
-# Add start batchfile and windows app shortcut
-file = open( f"{dir}/start.bat", "w")
+# Download and save start.exe
+print()
+print("Start downloading start.exe ...")
 
-file.write( f"start.exe {configFile}" )
-file.close()
+url = "https://raw.githubusercontent.com/lnoppinger/nodeWinInstaller/main/start.py"
+daten = urllib.request.urlopen( url ).read()
 
-print("Creating ")
-os.system(f"mklink /D {drive}\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\{nodeConfig['name'].lower()} {dir}\\start.bat")
+f = open(f"{dir}/start.exe", "w")
+f.write( daten )
+f.close()
+
+print("Successfully saved start.exe.")
+
+
+# Add windows app shortcut
+print()
+print("Creating windows app shortcut ...")
+
+os.link(f"{dir}/start.exe", f"{drive}/ProgramData/Microsoft/Windows/Start Menu/Programs/{nodeConfig['name'].lower()}")
+
+print("Successfully created shortcut.")
