@@ -1,0 +1,9 @@
+{
+    "name": "Warenwirtschaft",
+    "main": "index.js",
+    "nodeWinInstaller": {
+        "db": {
+            "init_file": "./.devcontainer/db/init.sql"
+        }
+    }
+}

@@ -1,0 +1,16 @@
+"C:\Program Files\PostgreSQL\14\bin\initdb" -D "C:\Program Files\PostgreSQL\14\data"
+
+https://github.com/lnoppinger/warenwirtschaft/archive/refs/heads/main.zip
+
+
+
+###
+
+icacls "C:/Program Files/PostgreSQL/14/data" /grant Lukas:F /T
+icacls "C:/Program Files/PostgreSQL/14/bin" /grant Lukas:F /T
+initdb.exe -D ../data --username=Lukas --auth=trust
+
+
+pg_ctl -D ../data -l log start
+...
+pg_ctl -D ../data -l log stop

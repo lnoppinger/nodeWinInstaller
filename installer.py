@@ -4,9 +4,8 @@ import shutil
 from io import BytesIO
 import urllib.request
 from zipfile import ZipFile
+from elevate import elevate
 
-class Error(Exception):
-    pass
 
 def install(url, path):
     print("    (This can take some time)")
@@ -33,8 +32,14 @@ def removeAllFromDir(dir):
         except OSError:
             os.remove(path)
 
+
 # const
 drive = os.environ['SYSTEMDRIVE']
+user = os.environ['USERNAME']
+
+
+# run as admin
+elevate()
 
 
 # Download NodeJS app with config
@@ -84,9 +89,8 @@ if not os.path.exists(dir):
 else:
     print( f"Installation directory '{dir}' already exists." )
 
-    i = input("Override data? [y/n]: (y) ")
-    if i.lower() == "y" or i.lower() == "":
-        removeAllFromDir(dir)
+    print("    Override data ...")
+    removeAllFromDir(dir)
 
 
 # Move temp cloned App to its location
@@ -120,24 +124,88 @@ else:
     print("NodeJS 16 is already installed.")
 
 
+# Install required node modules
+os.popen( f'cd "{dir}/app" & "{drive}/Program Files/nodejs/npm" install' ).read()
+
+
 # Optional: Installieren einer PostgreSQL datenbank
-if config["db"] :
+dbName = nodeConfig["name"].lower().replace(" ", "_")
+dbUser = "postgres"
+dbPassword = ""
+dbDataDir = ""
+
+if "db" in config and config["db"] != False:
     print()
     print("Installing PostgreSQL 14 ...")
 
     if not os.path.exists( f"{drive}/Program Files/PostgreSQL" ):
         os.mkdir( f"{drive}/Program Files/PostgreSQL" )
     
-    postgresInstall = False
-    if not os.path.exists( f"{drive}/Program Files/PostgreSQL/14" ):
-        postgresInstall = True
+    postgresDir = f"{drive}/Program Files/PostgreSQL/14"
+    
 
+    postgresInstall = False
+    if not os.path.exists( postgresDir ):
+        postgresInstall = True
+    
     if postgresInstall:
         install("https://sbp.enterprisedb.com/getfile.jsp?fileid=1258097", f"{drive}/Program Files/PostgreSQL")
-        os.rename( f"{drive}/Program Files/PostgreSQL/psql", f"{drive}/Program Files/PostgreSQL/14" )
+        os.rename( f"{drive}/Program Files/PostgreSQL/pgsql", postgresDir )
         print("Successfully installed PostgreSQL 14.")
+        
+        print()
+        print("Setting up PostgreSQL database ...")
+
+        os.mkdir( f"{postgresDir}/data" )
+        os.popen( f'icacls "{postgresDir}/data" /grant {user}:F /T' ).read()
+        os.popen( f'icacls "{postgresDir}/bin" /grant {user}:F /T' ).read()
+
+        os.popen( f'"{postgresDir}/bin/initdb.exe" -D "{postgresDir}/data" -U postgres -A trust' ).read()
+        os.popen( f'"{postgresDir}/bin/pg_ctl.exe" -D "{postgresDir}/data" start' )
+        os.popen(f'"{postgresDir}/bin/createdb.exe" -U postgres {dbName}').read()
+
+        if type(config["db"]) != bool and "init_file" in config["db"] and config["db"]["init_file"] != False:
+            print("    Setting up databases ...")
+            sqlFile = config["db"]["init_file"]
+            if not ":" in sqlFile:
+                sqlFile = f"{dir}/app/{sqlFile}"
+            os.popen( f'"{postgresDir}/bin/psql.exe" -U postgres -d {dbName} -f "{sqlFile}"' ).read()
+
+        print("    Stopping server ...")
+        os.popen( f'"{postgresDir}/bin/pg_ctl.exe" -D "{postgresDir}/data" stop' ).read()
+
+        print("Successfully set up PostgreSQL database.")
+        
+
     else:
         print("PostgreSQL 14 is already installed.")
+
+        i = input("Try to setup PostgreSQL database? [y/n]: (y) ")
+        if i.lower() == "y" or i == "":
+            dbUser = input("Enter PostgreSQL user: (postgres) ") or "postgres"
+            dbPassword = input("Enter PostgreSQL password: ")
+            dbDataDir = input(f"Enter PostgreSQL data directory: ({postgresDir}/data)") or f"{postgresDir}/data"
+
+            if dbPassword != "":
+                dbPassword = f"-W {dbPassword}"
+
+            try:
+                os.popen(f'"{postgresDir}/bin/createdb.exe" -U {dbUser} {dbPassword} {dbName}').read()
+
+                if type(config["db"]) != bool and "init_file" in config["db"] and config["db"]["init_file"] != False:
+                    print("    Setting up databases ...")
+                    sqlFile = config["db"]["init_file"]
+                    if not ":" in sqlFile:
+                        sqlFile = f"{dir}/app/{sqlFile}"
+                    os.popen( f'"{postgresDir}/bin/psql.exe" -U {dbUser} {dbPassword} -d {dbName} -f "{sqlFile}"' ).read()
+
+                print("    Stopping server ...")
+                os.popen( f'"{postgresDir}/bin/pg_ctl.exe" -D "{dbDataDir}" stop' ).read()
+                
+            except:
+                print(f"Setting up PostgreSQL database failed. Please configure manually. (db name: '{dbName}')")
+            
+            print("Successfully set up PostgreSQL database.")
 
 
 # Save current config in file
@@ -145,10 +213,14 @@ print()
 print("Save essential infos to config file ...")
 
 f = open(f"{dir}/config.json", "w")
-configEssential = json.loads('{"name": null, "main": null, "nodeWinInstaller": null}')
+configEssential = json.loads('{}')
 configEssential["name"] = nodeConfig["name"]
-configEssential["main"] = nodeConfig["main"]
-configEssential["nodeWinInstaller"] = config
+configEssential["node_script"] = nodeConfig["main"]
+
+if config["db"] != False:
+    configEssential["db"] = json.loads( f'{{"data_dir":"{dbDataDir}","user":"{dbUser}","password":"{dbPassword}"}}' )
+
+f.write( json.dumps(configEssential) )
 f.close()
 
 print("Successfully saved config.")
@@ -158,10 +230,10 @@ print("Successfully saved config.")
 print()
 print("Start downloading start.exe ...")
 
-url = "https://raw.githubusercontent.com/lnoppinger/nodeWinInstaller/main/start.py"
+url = "https://raw.githubusercontent.com/lnoppinger/nodeWinInstaller/main/start.exe"
 daten = urllib.request.urlopen( url ).read()
 
-f = open(f"{dir}/start.exe", "w")
+f = open(f"{dir}/start.exe", "wb")
 f.write( daten )
 f.close()
 
