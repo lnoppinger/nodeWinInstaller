@@ -1,4 +1,7 @@
-/key.txt
-/notes.txt
+key.txt
+notes.txt
 
-/__pycache__
+__pycache__
+
+test.json
+test.py
