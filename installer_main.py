@@ -125,7 +125,7 @@ os.popen( f'cd "{dir}/app" & "{drive}/Program Files/nodejs/npm" install' ).read(
 
 # Optional: Installieren einer PostgreSQL datenbank
 dbName = nodeConfig["name"].lower().replace(" ", "_")
-dbUser = "postgres"
+dbUser = ""
 dbPassword = ""
 dbDataDir = ""
 
@@ -170,6 +170,9 @@ if "db" in config and config["db"] != False:
         os.popen( f'"{postgresDir}/bin/pg_ctl.exe" -D "{postgresDir}/data" stop' ).read()
 
         print("Successfully set up PostgreSQL database.")
+
+        dbUser = "postgres"
+        dbDataDir = f"{postgresDir}/data"
         
 
     else:
@@ -242,3 +245,7 @@ print("Creating windows app shortcut ...")
 os.link(f"{dir}/start.exe", f"{drive}/ProgramData/Microsoft/Windows/Start Menu/Programs/{nodeConfig['name'].lower()}")
 
 print("Successfully created shortcut.")
+
+
+# Finish
+input("Setup process complete. Please press Enter ...")
