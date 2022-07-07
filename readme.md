@@ -12,7 +12,7 @@ The easiest way for the installation is when the Node Js app is uploaded to Gith
 
 ## Installation setps
 
-1. [Download](https://github.com/lnoppinger/nodeWinInstaller/raw/main/installer.exe) the installer.
+1. [Download](https://github.com/lnoppinger/nodeWinInstaller/raw/main/nodeWinInstaller.exe) the installer.
 2. Get the link to the zip archive of the Node Js app:
     - public Github repo: https://github.com/``<username>``/``<repo>``/archive/refs/heads/main.zip
     - private Github repo: https://``<personal access token>``@github.com/``<username>``/``<repo>``/archive/refs/heads/main.zip
