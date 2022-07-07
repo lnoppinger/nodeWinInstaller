@@ -252,5 +252,5 @@ print("Successfully created shortcut.")
 
 
 # Finish
-print("Setup process complete. Please press Enter ...")
+input("Setup process complete. Please press Enter ...")
 os.popen("wait").read()
