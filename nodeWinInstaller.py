@@ -74,7 +74,7 @@ config = nodeConfig["nodeWinInstaller"]
 # Creating the installation directory
 print()
 
-defaultDir = f"{drive}/Program Files/{nodeConfig['name'].lower()}"
+defaultDir = f"{drive}/Program Files/{nodeConfig['name']}"
 dir = input(f"Path of the installation directory: ({defaultDir}) ").replace("\\", "/") or defaultDir
 
 if not os.path.exists(dir):
@@ -246,7 +246,7 @@ print("Successfully saved start.exe.")
 print()
 print("Creating windows app shortcut ...")
 
-os.link(f"{dir}/start.exe", f"{drive}/ProgramData/Microsoft/Windows/Start Menu/Programs/{nodeConfig['name'].lower()}")
+os.popen(f'mklink "{drive}/ProgramData/Microsoft/Windows/Start Menu/Programs/{nodeConfig["name"]}" "{dir}/start.exe" ').read()
 
 print("Successfully created shortcut.")
 
