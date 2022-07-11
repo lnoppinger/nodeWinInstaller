@@ -3,7 +3,6 @@ import json
 import sys
 import webview
 import subprocess
-import time
 
 # const
 drive = os.environ['SYSTEMDRIVE']
@@ -47,7 +46,7 @@ if "db" in config and config["db"] != False:
 
 # Start NodeJS app
 print("Starting NodeJS server ...")
-os.popen( f'start /d "{dir}/app" cmd /c "title nginx_kill_{config["name"].lower().replace(" ", "_")} & node.exe {config["node_script"]}"' )
+os.popen( f'start /b /d "{dir}/app" cmd /k node.exe {config["node_script"]} --title=nginx_kill_{config["name"].lower().replace(" ", "_")}' )
 print("Successfully started NodeJS server.")
 
 
