@@ -46,7 +46,7 @@ if "db" in config and config["db"] != False:
 
 # Start NodeJS app
 print("Starting NodeJS server ...")
-os.popen( f'start /d "{dir}/app" cmd /k "title nginx_kill_{config["name"].lower().replace(" ", "_")} && node.exe {config["node_script"]}' )
+os.popen( f'start /d "{dir}/app" cmd /k "title nginx_{config["name"].lower().replace(" ", "_")} && set node=\'C:/Program Files/nodejs/node.exe\'&& node {config["node_script"]}"' )
 print("Successfully started NodeJS server.")
 
 

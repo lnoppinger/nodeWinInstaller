@@ -32,230 +32,225 @@ def removeAllFromDir(dir):
             os.remove(path)
 
 
-try:
-    # const
-    drive = os.environ['SYSTEMDRIVE']
-    user = os.environ['USERNAME']
+# const
+drive = os.environ['SYSTEMDRIVE']
+user = os.environ['USERNAME']
 
 
-    # Download NodeJS app with config
-    appUrl = input("Url to the zip archive of NodeJS app: ")
+# Download NodeJS app with config
+appUrl = input("Url to the zip archive of NodeJS app: ")
 
-    print("Download NodeJS app.")
-    install(appUrl, f"{drive}/Windows/Temp/clonedApp")
-    print("Successfully downloaded the NodeJS app.")
-
-
-    # Load config
-    print()
-
-    folderName = os.listdir(f"{drive}/Windows/Temp/clonedApp")[0]
-    configFileDefault = f"{drive}/Windows/Temp/clonedApp/{folderName}/package.json"
-    configFile = configFileDefault
-
-    if input("Use custom config? [y/n]: (n) ") == "y":
-        configFile = input("Path of the config file: ").replace("\\", "/")
-
-    print("Loading config ...")
-    nodeConfig = json.load( open( configFile, "r" ))
-    print("Successfully loaded the config.")
-
-    useDefaultConfig = False
-    if not "nodeWinInstaller" in nodeConfig:
-        useDefaultConfig = True
-        print("No config for 'nodeWinInstaller' was found. Continuing with default config ...")
-
-        url = "https://raw.githubusercontent.com/lnoppinger/nodeWinInstaller/main/default_config.json"
-        nodeConfig["nodeWinInstaller"] = json.loads( urllib.request.urlopen( url ).read() )
-        print("Successfully downloaded default config.")
-
-    config = nodeConfig["nodeWinInstaller"]
+print("Download NodeJS app.")
+install(appUrl, f"{drive}/Windows/Temp/clonedApp")
+print("Successfully downloaded the NodeJS app.")
 
 
-    # Creating the installation directory
-    print()
+# Load config
+print()
 
-    defaultDir = f"{drive}/Program Files/{nodeConfig['name']}"
-    dir = input(f"Path of the installation directory: ({defaultDir}) ").replace("\\", "/") or defaultDir
+folderName = os.listdir(f"{drive}/Windows/Temp/clonedApp")[0]
+configFileDefault = f"{drive}/Windows/Temp/clonedApp/{folderName}/package.json"
+configFile = configFileDefault
 
-    if not os.path.exists(dir):
-        os.mkdir(dir)
-        print( f"Installation directory '{dir}' was created." )
+if input("Use custom config? [y/n]: (n) ") == "y":
+    configFile = input("Path of the config file: ").replace("\\", "/")
 
-    else:
-        print( f"Installation directory '{dir}' already exists." )
+print("Loading config ...")
+nodeConfig = json.load( open( configFile, "r" ))
+print("Successfully loaded the config.")
 
-        print("    Override data ...")
-        removeAllFromDir(dir)
+useDefaultConfig = False
+if not "nodeWinInstaller" in nodeConfig:
+    useDefaultConfig = True
+    print("No config for 'nodeWinInstaller' was found. Continuing with default config ...")
+
+    url = "https://raw.githubusercontent.com/lnoppinger/nodeWinInstaller/main/default_config.json"
+    nodeConfig["nodeWinInstaller"] = json.loads( urllib.request.urlopen( url ).read() )
+    print("Successfully downloaded default config.")
+
+config = nodeConfig["nodeWinInstaller"]
 
 
-    # Move temp cloned App to its location
-    print()
+# Creating the installation directory
+print()
 
-    os.rename(f"{drive}/Windows/Temp/clonedApp/{folderName}", f"{dir}/app")
-    shutil.rmtree(f"{drive}/Windows/Temp/clonedApp")
+defaultDir = f"{drive}/Program Files/{nodeConfig['name']}"
+dir = input(f"Path of the installation directory: ({defaultDir}) ").replace("\\", "/") or defaultDir
 
-    print(f"Successfully saved NodeJS app to '{dir}/app'")
+if not os.path.exists(dir):
+    os.mkdir(dir)
+    print( f"Installation directory '{dir}' was created." )
+
+else:
+    print( f"Installation directory '{dir}' already exists." )
+
+    print("    Override data ...")
+    removeAllFromDir(dir)
 
 
-    # Install nodeJS
-    print()
-    print("Installing NodeJS 16 ...")
+# Move temp cloned App to its location
+print()
 
-    nodeInstall = False
-    if not os.path.exists( f"{drive}/Program Files/nodejs" ):
+os.rename(f"{drive}/Windows/Temp/clonedApp/{folderName}", f"{dir}/app")
+shutil.rmtree(f"{drive}/Windows/Temp/clonedApp")
+
+print(f"Successfully saved NodeJS app to '{dir}/app'")
+
+
+# Install nodeJS
+print()
+print("Installing NodeJS 16 ...")
+
+nodeInstall = False
+if not os.path.exists( f"{drive}/Program Files/nodejs" ):
+    nodeInstall = True
+
+else:
+    v = os.popen( "node -v").read()
+    if v.split(".")[0] != "v16":
         nodeInstall = True
+        shutil.rmtree( f"{drive}/Program Files/nodejs" )
 
-    else:
-        v = os.popen( "node -v").read()
-        if v.split(".")[0] != "v16":
-            nodeInstall = True
-            shutil.rmtree( f"{drive}/Program Files/nodejs" )
-
-    if nodeInstall:
-        install("https://nodejs.org/dist/v16.15.1/node-v16.15.1-win-x64.zip", f"{drive}/Program Files")
-        os.rename("C:/Program Files/node-v16.15.1-win-x64", f"{drive}/Program Files/nodejs")
-        print("Succesfully installed NodeJS 16.")
-    else:
-        print("NodeJS 16 is already installed.")
+if nodeInstall:
+    install("https://nodejs.org/dist/v16.15.1/node-v16.15.1-win-x64.zip", f"{drive}/Program Files")
+    os.rename("C:/Program Files/node-v16.15.1-win-x64", f"{drive}/Program Files/nodejs")
+    print("Succesfully installed NodeJS 16.")
+else:
+    print("NodeJS 16 is already installed.")
 
 
-    # Install required node modules
-    os.popen( f'cd "{dir}/app" & "{drive}/Program Files/nodejs/npm" install' ).read()
+# Install required node modules
+os.popen( f'cd "{dir}/app" & "{drive}/Program Files/nodejs/npm" install' ).read()
 
 
-    # Optional: Installieren einer PostgreSQL datenbank
-    dbName = nodeConfig["name"].lower().replace(" ", "_")
-    dbUser = ""
-    dbPassword = ""
-    dbDataDir = ""
+# Optional: Installieren einer PostgreSQL datenbank
+dbName = nodeConfig["name"].lower().replace(" ", "_")
+dbUser = ""
+dbPassword = ""
+dbDataDir = ""
 
-    if "db" in config and config["db"] != False:
+if "db" in config and config["db"] != False:
+    print()
+    print("Installing PostgreSQL 14 ...")
+
+    if not os.path.exists( f"{drive}/Program Files/PostgreSQL" ):
+        os.mkdir( f"{drive}/Program Files/PostgreSQL" )
+    
+    postgresDir = f"{drive}/Program Files/PostgreSQL/14"
+    
+
+    postgresInstall = False
+    if not os.path.exists( postgresDir ):
+        postgresInstall = True
+    
+    if postgresInstall:
+        install("https://sbp.enterprisedb.com/getfile.jsp?fileid=1258097", f"{drive}/Program Files/PostgreSQL")
+        os.rename( f"{drive}/Program Files/PostgreSQL/pgsql", postgresDir )
+        print("Successfully installed PostgreSQL 14.")
+        
         print()
-        print("Installing PostgreSQL 14 ...")
+        print("Setting up PostgreSQL database ...")
 
-        if not os.path.exists( f"{drive}/Program Files/PostgreSQL" ):
-            os.mkdir( f"{drive}/Program Files/PostgreSQL" )
+        os.mkdir( f"{postgresDir}/data" )
+        os.popen( f'icacls "{postgresDir}/data" /grant {user}:F /T' ).read()
+        os.popen( f'icacls "{postgresDir}/bin" /grant {user}:F /T' ).read()
+
+        os.popen( f'"{postgresDir}/bin/initdb.exe" -D "{postgresDir}/data" -U postgres -A trust' ).read()
+        os.popen( f'"{postgresDir}/bin/pg_ctl.exe" -D "{postgresDir}/data" start' )
+        os.popen(f'"{postgresDir}/bin/createdb.exe" -U postgres {dbName}').read()
+
+        if type(config["db"]) != bool and "init_file" in config["db"] and config["db"]["init_file"] != False:
+            print("    Setting up databases ...")
+            sqlFile = config["db"]["init_file"]
+            if not ":" in sqlFile:
+                sqlFile = f"{dir}/app/{sqlFile}"
+            os.popen( f'"{postgresDir}/bin/psql.exe" -U postgres -d {dbName} -f "{sqlFile}"' ).read()
+
+        print("    Stopping server ...")
+        os.popen( f'"{postgresDir}/bin/pg_ctl.exe" -D "{postgresDir}/data" stop' ).read()
+
+        print("Successfully set up PostgreSQL database.")
+
+        dbUser = "postgres"
+        dbDataDir = f"{postgresDir}/data"
         
-        postgresDir = f"{drive}/Program Files/PostgreSQL/14"
-        
 
-        postgresInstall = False
-        if not os.path.exists( postgresDir ):
-            postgresInstall = True
-        
-        if postgresInstall:
-            install("https://sbp.enterprisedb.com/getfile.jsp?fileid=1258097", f"{drive}/Program Files/PostgreSQL")
-            os.rename( f"{drive}/Program Files/PostgreSQL/pgsql", postgresDir )
-            print("Successfully installed PostgreSQL 14.")
-            
-            print()
-            print("Setting up PostgreSQL database ...")
+    else:
+        print("PostgreSQL 14 is already installed.")
 
-            os.mkdir( f"{postgresDir}/data" )
-            os.popen( f'icacls "{postgresDir}/data" /grant {user}:F /T' ).read()
-            os.popen( f'icacls "{postgresDir}/bin" /grant {user}:F /T' ).read()
+        i = input("Try to setup PostgreSQL database? [y/n]: (y) ")
+        if i.lower() == "y" or i == "":
+            dbUser = input("Enter PostgreSQL user: (postgres) ") or "postgres"
+            dbPassword = input("Enter PostgreSQL password: ")
+            dbDataDir = input(f"Enter PostgreSQL data directory: ({postgresDir}/data)") or f"{postgresDir}/data"
 
-            os.popen( f'"{postgresDir}/bin/initdb.exe" -D "{postgresDir}/data" -U postgres -A trust' ).read()
-            os.popen( f'"{postgresDir}/bin/pg_ctl.exe" -D "{postgresDir}/data" start' )
-            os.popen(f'"{postgresDir}/bin/createdb.exe" -U postgres {dbName}').read()
+            if dbPassword != "":
+                dbPassword = f"-W {dbPassword}"
 
-            if type(config["db"]) != bool and "init_file" in config["db"] and config["db"]["init_file"] != False:
-                print("    Setting up databases ...")
-                sqlFile = config["db"]["init_file"]
-                if not ":" in sqlFile:
-                    sqlFile = f"{dir}/app/{sqlFile}"
-                os.popen( f'"{postgresDir}/bin/psql.exe" -U postgres -d {dbName} -f "{sqlFile}"' ).read()
+            try:
+                if len( os.popen( f'"{postgresDir}/bin/pg_ctl.exe" -D "{dbDataDir}" status' ).read().split("\\n") ) < 2:
+                    print("    Starte server ...")
+                    os.popen( f'"{postgresDir}/bin/pg_ctl.exe" -D "{dbDataDir}" start' )
 
-            print("    Stopping server ...")
-            os.popen( f'"{postgresDir}/bin/pg_ctl.exe" -D "{postgresDir}/data" stop' ).read()
+                os.popen(f'"{postgresDir}/bin/createdb.exe" -U {dbUser} {dbPassword} {dbName}').read()
 
-            print("Successfully set up PostgreSQL database.")
+                if type(config["db"]) != bool and "init_file" in config["db"] and config["db"]["init_file"] != False:
+                    print("    Setting up databases ...")
+                    sqlFile = config["db"]["init_file"]
+                    if not ":" in sqlFile:
+                        sqlFile = f"{dir}/app/{sqlFile}"
+                    os.popen( f'"{postgresDir}/bin/psql.exe" -U {dbUser} {dbPassword} -d {dbName} -f "{sqlFile}"' ).read()
 
-            dbUser = "postgres"
-            dbDataDir = f"{postgresDir}/data"
-            
+                print("    Stopping server ...")
+                os.popen( f'"{postgresDir}/bin/pg_ctl.exe" -D "{dbDataDir}" stop' ).read()
 
-        else:
-            print("PostgreSQL 14 is already installed.")
-
-            i = input("Try to setup PostgreSQL database? [y/n]: (y) ")
-            if i.lower() == "y" or i == "":
-                dbUser = input("Enter PostgreSQL user: (postgres) ") or "postgres"
-                dbPassword = input("Enter PostgreSQL password: ")
-                dbDataDir = input(f"Enter PostgreSQL data directory: ({postgresDir}/data)") or f"{postgresDir}/data"
-
-                if dbPassword != "":
-                    dbPassword = f"-W {dbPassword}"
-
-                try:
-                    if len( os.popen( f'"{postgresDir}/bin/pg_ctl.exe" -D "{dbDataDir}" status' ).read().split("\\n") ) < 2:
-                        print("    Starte server ...")
-                        os.popen( f'"{postgresDir}/bin/pg_ctl.exe" -D "{dbDataDir}" start' )
-
-                    os.popen(f'"{postgresDir}/bin/createdb.exe" -U {dbUser} {dbPassword} {dbName}').read()
-
-                    if type(config["db"]) != bool and "init_file" in config["db"] and config["db"]["init_file"] != False:
-                        print("    Setting up databases ...")
-                        sqlFile = config["db"]["init_file"]
-                        if not ":" in sqlFile:
-                            sqlFile = f"{dir}/app/{sqlFile}"
-                        os.popen( f'"{postgresDir}/bin/psql.exe" -U {dbUser} {dbPassword} -d {dbName} -f "{sqlFile}"' ).read()
-
-                    print("    Stopping server ...")
-                    os.popen( f'"{postgresDir}/bin/pg_ctl.exe" -D "{dbDataDir}" stop' ).read()
-
-                    print("Successfully set up PostgreSQL database.")
-                    
-                except:
-                    print(f"Setting up PostgreSQL database failed. Please configure manually. (db name: '{dbName}')")
+                print("Successfully set up PostgreSQL database.")
                 
+            except:
+                print(f"Setting up PostgreSQL database failed. Please configure manually. (db name: '{dbName}')")
+            
 
-    # Save current config in file
-    print()
-    print("Save essential infos to config file ...")
+# Save current config in file
+print()
+print("Save essential infos to config file ...")
 
-    f = open(f"{dir}/config.json", "w")
-    configEssential = json.loads('{}')
-    configEssential["name"] = nodeConfig["name"]
-    configEssential["node_script"] = nodeConfig["main"]
+f = open(f"{dir}/config.json", "w")
+configEssential = json.loads('{}')
+configEssential["name"] = nodeConfig["name"]
+configEssential["node_script"] = nodeConfig["main"]
 
-    if config["db"] != False:
-        configEssential["db"] = json.loads( f'{{"data_dir":"{dbDataDir}","user":"{dbUser}","password":"{dbPassword}"}}' )
+if config["db"] != False:
+    configEssential["db"] = json.loads( f'{{"data_dir":"{dbDataDir}","user":"{dbUser}","password":"{dbPassword}"}}' )
 
-    f.write( json.dumps(configEssential) )
-    f.close()
+f.write( json.dumps(configEssential) )
+f.close()
 
-    print("Successfully saved config.")
-
-
-    # Download and save start.exe
-    print()
-    print("Start downloading start.exe ...")
-
-    url = "https://raw.githubusercontent.com/lnoppinger/nodeWinInstaller/main/start.exe"
-    daten = urllib.request.urlopen( url ).read()
-
-    f = open(f"{dir}/start.exe", "wb")
-    f.write( daten )
-    f.close()
-
-    print("Successfully saved start.exe.")
+print("Successfully saved config.")
 
 
-    # Add windows app shortcut
-    print()
-    print("Creating windows app shortcut ...")
+# Download and save start.exe
+print()
+print("Start downloading start.exe ...")
 
-    os.popen(f'powershell $WScriptShell = New-Object -ComObject WScript.Shell; $Shortcut = $WScriptShell.CreateShortcut(\\"C:/ProgramData/Microsoft/Windows/Start Menu/Programs/{nodeConfig["name"]}.lnk\\"); $Shortcut.TargetPath = \\"{dir}/start.exe\\"; $Shortcut.WorkingDirectory = \\"{dir}\\"; $Shortcut.Save()').read()
+url = "https://raw.githubusercontent.com/lnoppinger/nodeWinInstaller/main/start.exe"
+daten = urllib.request.urlopen( url ).read()
 
-    print("Successfully created shortcut.")
+f = open(f"{dir}/start.exe", "wb")
+f.write( daten )
+f.close()
+
+print("Successfully saved start.exe.")
 
 
-    # Finish
-    input("Setup process complete. Please press Enter ...")
-    os.popen("wait").read()
+# Add windows app shortcut
+print()
+print("Creating windows app shortcut ...")
 
-except:
-    print("Installation failed. Please press Enter ...")
-    os.popen("wait").read()
+os.popen(f'powershell $WScriptShell = New-Object -ComObject WScript.Shell; $Shortcut = $WScriptShell.CreateShortcut(\\"C:/ProgramData/Microsoft/Windows/Start Menu/Programs/{nodeConfig["name"]}.lnk\\"); $Shortcut.TargetPath = \\"{dir}/start.exe\\"; $Shortcut.WorkingDirectory = \\"{dir}\\"; $Shortcut.Save()').read()
+
+print("Successfully created shortcut.")
+
+
+# Finish
+input("Setup process complete. Please press Enter ...")
+os.popen("wait").read()
