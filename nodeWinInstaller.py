@@ -22,7 +22,6 @@ def install(url, path):
     zFile = ZipFile( BytesIO( zRes.read() ) )
     zFile.extractall( path )
 
-
 def removeAllFromDir(dir):
     for files in os.listdir(dir):
         path = os.path.join(dir, files)
@@ -125,9 +124,8 @@ os.popen( f'cd "{dir}/app" & "{drive}/Program Files/nodejs/npm" install' ).read(
 
 # Optional: Installieren einer PostgreSQL datenbank
 dbName = nodeConfig["name"].lower().replace(" ", "_")
-dbUser = ""
-dbPassword = ""
 dbDataDir = ""
+auth = ""
 
 if "db" in config and config["db"] != False:
     print()
@@ -169,37 +167,46 @@ if "db" in config and config["db"] != False:
         print("    Stopping server ...")
         os.popen( f'"{postgresDir}/bin/pg_ctl.exe" -D "{postgresDir}/data" stop' ).read()
 
-        print("Successfully set up PostgreSQL database.")
-
-        dbUser = "postgres"
         dbDataDir = f"{postgresDir}/data"
+        auth = "-U postgres"
+
+        print("Successfully set up PostgreSQL database.")
+        print("     Username:   postgres")
+        print("     Password:   postgres")
+        print(f"     Dir:        {dbDataDir}")
+
+        
         
 
     else:
         print("PostgreSQL 14 is already installed.")
 
+        dbDataDir = input(f"Enter PostgreSQL data directory: ({postgresDir}/data)") or f"{postgresDir}/data"
+
         i = input("Try to setup PostgreSQL database? [y/n]: (y) ")
         if i.lower() == "y" or i == "":
             dbUser = input("Enter PostgreSQL user: (postgres) ") or "postgres"
             dbPassword = input("Enter PostgreSQL password: ")
-            dbDataDir = input(f"Enter PostgreSQL data directory: ({postgresDir}/data)") or f"{postgresDir}/data"
-
-            if dbPassword != "":
-                dbPassword = f"-W {dbPassword}"
 
             try:
+                auth = f"-U {dbUser}"
+                if(dbPassword != ""):
+                    auth += f" -W {dbPassword}"
+                else:
+                    auth += f" -A trust"
+
                 if len( os.popen( f'"{postgresDir}/bin/pg_ctl.exe" -D "{dbDataDir}" status' ).read().split("\\n") ) < 2:
                     print("    Starte server ...")
                     os.popen( f'"{postgresDir}/bin/pg_ctl.exe" -D "{dbDataDir}" start' )
 
-                os.popen(f'"{postgresDir}/bin/createdb.exe" -U {dbUser} {dbPassword} {dbName}').read()
+                os.popen(f'"{postgresDir}/bin/createdb.exe" {auth} {dbName}').read()
 
                 if type(config["db"]) != bool and "init_file" in config["db"] and config["db"]["init_file"] != False:
                     print("    Setting up databases ...")
                     sqlFile = config["db"]["init_file"]
                     if not ":" in sqlFile:
                         sqlFile = f"{dir}/app/{sqlFile}"
-                    os.popen( f'"{postgresDir}/bin/psql.exe" -U {dbUser} {dbPassword} -d {dbName} -f "{sqlFile}"' ).read()
+                    os.popen( f'"{postgresDir}/bin/psql.exe" {auth} -d {dbName} -f "{sqlFile}"' ).read()
 
                 print("    Stopping server ...")
                 os.popen( f'"{postgresDir}/bin/pg_ctl.exe" -D "{dbDataDir}" stop' ).read()
@@ -220,7 +227,7 @@ configEssential["name"] = nodeConfig["name"]
 configEssential["node_script"] = nodeConfig["main"]
 
 if config["db"] != False:
-    configEssential["db"] = json.loads( f'{{"data_dir":"{dbDataDir}","user":"{dbUser}","password":"{dbPassword}"}}' )
+    configEssential["db"] = json.loads( f'{{"auth": {auth}","data_dir":"{dbDataDir}"}}' )
 
 f.write( json.dumps(configEssential) )
 f.close()
@@ -242,6 +249,20 @@ f.close()
 print("Successfully saved start.exe.")
 
 
+# Download and save uninstall.exe
+print()
+print("Start downloading uninstall.exe ...")
+
+url = "https://raw.githubusercontent.com/lnoppinger/nodeWinInstaller/main/uninstall.exe"
+daten = urllib.request.urlopen( url ).read()
+
+f = open(f"{dir}/uninstall.exe", "wb")
+f.write( daten )
+f.close()
+
+print("Successfully saved uninstall.exe.")
+
+
 # Add windows app shortcut
 print()
 print("Creating windows app shortcut ...")
@@ -252,5 +273,5 @@ print("Successfully created shortcut.")
 
 
 # Finish
-input("Setup process complete. Please press Enter ...")
-os.popen("wait").read()
+print("Setup process complete. Please press Enter ...")
+os.popen("pause").read()

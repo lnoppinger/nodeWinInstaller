@@ -46,7 +46,7 @@ if "db" in config and config["db"] != False:
 
 # Start NodeJS app
 print("Starting NodeJS server ...")
-os.popen( f'start /d "{dir}/app" cmd /k "title nginx_{config["name"].lower().replace(" ", "_")} && set node=\'C:/Program Files/nodejs/node.exe\'&& node {config["node_script"]}"' )
+os.popen( f'start /min /d "{dir}/app" cmd /k "title nginx_{config["name"].lower().replace(" ", "_")} && cd {dir}/app && set node=\'C:/Program Files/nodejs/node.exe\' && node {config["node_script"]}"' )
 print("Successfully started NodeJS server.")
 
 
@@ -72,7 +72,7 @@ def onClose():
     
     # Stop NodeJS app
     print("Stopping NodeJS server ...")
-    os.popen( f'taskkill /FI "windowtitle eq nginx_kill_{config["name"].lower().replace(" ", "_")}*"' ).read()
+    os.popen( f'taskkill /FI "windowtitle eq nginx_{config["name"].lower().replace(" ", "_")}*"' ).read()
     print("Successfully stopped NodeJS server.")
 
 # Start Window
